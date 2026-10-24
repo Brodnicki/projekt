@@ -1,0 +1,158 @@
+=============================================================================
+ CO DALEJ — plan rozbudowy symulatora krok po kroku
+=============================================================================
+
+Masz działający szkielet (krok 1): zlecenia wpisane w main.cpp, kolejka FIFO,
+kalendarz zdarzeń i pętla A/B/C. Każdy kolejny krok dokłada JEDNĄ rzecz.
+Po każdym kroku: skompiluj, uruchom i sprawdź wynik na 3-4 zleceniach
+ręcznie, na kartce. Dopiero gdy się zgadza, idź dalej.
+
+Kompilacja:  g++ -std=c++17 -Wall -Wextra *.cpp -o symulator
+albo:        cmake -S . -B build && cmake --build build
+
+
+-----------------------------------------------------------------------------
+KROK 2. Kilku wykonawców
+-----------------------------------------------------------------------------
+Co zrobić:
+  - W main.cpp dodaj drugiego wykonawcę: Wykonawca("Jan").
+  - Sprawdź na kartce, kto dostaje które zlecenie.
+Biblioteki: nic nowego (std::vector już jest).
+Uwaga: teraz zlecenie dostaje pierwszy wolny z listy. Później zastąpisz to
+regułą wyboru (patrz krok 4).
+
+
+-----------------------------------------------------------------------------
+KROK 3. Priorytet, termin i druga strategia (WYMAGANE NA 3.0)
+-----------------------------------------------------------------------------
+Co zrobić:
+  1. W Zlecenie.h dodaj pola: int priorytet (1..5), int termin (deadline).
+  2. Zrób interfejs strategii — klasę abstrakcyjną, np. IStrategia:
+       virtual void dodaj(const Zlecenie&) = 0;
+       virtual bool pusta() const = 0;
+       virtual Zlecenie pobierz() = 0;
+       virtual ~IStrategia() = default;
+  3. Dwie implementacje:
+       StrategiaFifo  — w środku std::queue<Zlecenie>
+       StrategiaHpf   — w środku std::priority_queue<Zlecenie, std::vector<Zlecenie>, KomparatorPriorytetu>
+  4. W Symulatorze zamień pole  std::queue<Zlecenie> kolejka_
+     na  std::unique_ptr<IStrategia> kolejka_  i podawaj strategię w konstruktorze.
+  5. Uruchom obie strategie NA TYCH SAMYCH zleceniach i porównaj wyniki.
+Biblioteki:
+  <queue>       std::queue, std::priority_queue
+  <memory>      std::unique_ptr, std::make_unique
+  <tuple>       std::tie — wygodne porównanie kilku pól naraz w komparatorze
+Pułapki:
+  - Komparator priority_queue zwraca true, gdy pierwszy element jest GORSZY
+    (wyjdzie później). Tak samo jak PozniejszeZdarzenie w Zdarzenie.h.
+  - Kopiec nie jest stabilny: przy równym priorytecie dorzuć do porównania
+    czas nadejścia i id, inaczej kolejność remisów będzie przypadkowa.
+
+Kolejne strategie (na wyższe oceny) to tylko nowe komparatory:
+  SJF   — najkrótszy czas realizacji najpierw
+  EDF   — najwcześniejszy termin najpierw (na 4.5)
+  AGING — priorytet rośnie z czasem czekania (na 4.5). Sztuczka: porównuj
+          klucz (nadejscie - priorytet * T); dzięki temu nie trzeba
+          przebudowywać kopca, bo kolejność nie zmienia się w czasie.
+
+
+-----------------------------------------------------------------------------
+KROK 4. Specjalizacje i tempo wykonawców
+-----------------------------------------------------------------------------
+Co zrobić:
+  - Zlecenie dostaje pole "wymagana specjalizacja" (enum class Specjalizacja).
+  - Wykonawca dostaje: listę umiejętności i tempo (czas = realizacja / tempo).
+  - Najprościej: osobna kolejka dla każdej specjalizacji; w fazie C wolny
+    wykonawca bierze zlecenie tylko z kolejek, które umie obsłużyć.
+  - Reguła wyboru wykonawcy, np. najpierw specjalista, potem najszybszy.
+Biblioteki:
+  <array>   std::array<..., 4> — po jednej kolejce na specjalizację
+  <set>     std::set — wolni wykonawcy posortowani według preferencji
+            (opcjonalnie; przy kilku wykonawcach wystarczy pętla po vectorze)
+
+
+-----------------------------------------------------------------------------
+KROK 5. Wczytywanie plików i zapis wyników (WYMAGANE NA 3.0)
+-----------------------------------------------------------------------------
+Co zrobić:
+  1. zgloszenia.txt — jedna linia = jedno zlecenie, np.:
+       # id nadejscie realizacja priorytet termin specjalizacja
+       1    0         600        3         3600   KOMPLETACJA
+  2. konfiguracja.txt — lista wykonawców i nazwa strategii.
+  3. wyniki.txt — tabela jak teraz w main.cpp, ale do pliku.
+  4. Odporność na błędy (na 3.5): brak pliku, zła liczba pól, tekst zamiast
+     liczby, ujemny czas. Wypisz numer linii i przejdź dalej albo zakończ.
+Biblioteki:
+  <fstream>      std::ifstream (odczyt), std::ofstream (zapis)
+  <sstream>      std::istringstream — rozbicie linii na pola
+  <string>       std::getline, std::stoi albo lepiej:
+  <charconv>     std::from_chars — zamiana tekstu na liczbę bez wyjątków,
+                 wykrywa śmieci typu "12abc"
+  <filesystem>   (opcjonalnie) ścieżki i tworzenie katalogu na wyniki
+Pułapki:
+  - Plik z Windows ma na końcu linii znak '\r' — usuń go przed parsowaniem.
+  - Linie zaczynające się od '#' i puste linie pomijaj.
+
+
+-----------------------------------------------------------------------------
+KROK 6. Statystyki (WYMAGANE NA 3.0, rozszerzenia na 5.0)
+-----------------------------------------------------------------------------
+Co zrobić:
+  - Średni i maksymalny czas oczekiwania, liczba obsłużonych zleceń (3.0).
+  - Wykorzystanie każdego wykonawcy = czas pracy / czas symulacji.
+  - Zlecenia w terminie vs spóźnione (koniec <= termin).
+  - Na 5.0: odchylenie standardowe i percentyle 90/95/99.
+Biblioteki:
+  <algorithm>  std::sort (percentyle z posortowanego wektora), std::max_element
+  <numeric>    std::accumulate — suma
+  <cmath>      std::sqrt — odchylenie standardowe
+Wskazówka: dobrym sprawdzianem poprawności jest prawo Little'a: suma czasów
+oczekiwania musi się równać polu pod wykresem długości kolejki w czasie.
+
+
+-----------------------------------------------------------------------------
+KROK 7. Generator losowych zleceń z ziarnem (NA 4.5 i 5.0)
+-----------------------------------------------------------------------------
+Co zrobić:
+  - Program, który tworzy zgloszenia.txt z N > 10000 losowymi zleceniami.
+  - Odstępy między nadejściami: rozkład wykładniczy (= proces Poissona).
+  - Czas obsługi: rozkład wykładniczy.
+  - Priorytet: rozkład dyskretny z zadanymi udziałami.
+  - To samo ziarno (seed) musi dawać ten sam plik.
+Biblioteki:
+  <random>  std::mt19937_64 generator(ziarno);
+            std::exponential_distribution<double>  — odstępy, czas obsługi
+            std::poisson_distribution<int>         — np. liczba palet w dostawie
+            std::discrete_distribution<int>        — priorytet
+            std::uniform_real_distribution<double> — losowy zapas do terminu
+Pułapka: twórz generator RAZ i przekazuj go dalej. Nowy generator z tym
+samym ziarnem przy każdym losowaniu daje cały czas tę samą liczbę.
+
+
+-----------------------------------------------------------------------------
+KROK 8. Eksperymenty i sprawozdanie (WYMAGANE)
+-----------------------------------------------------------------------------
+Co zrobić:
+  - Co najmniej 3 scenariusze: małe obciążenie, zrównoważone, przeciążenie
+    (różna liczba zleceń na godzinę przy tej samej liczbie wykonawców).
+  - Każdą strategię uruchom na TYCH SAMYCH plikach.
+  - Wyniki zapisuj też w CSV (przecinki), żeby zrobić wykresy w Excelu
+    albo w Pythonie (matplotlib).
+  - Analiza złożoności: FIFO dodanie/pobranie O(1), kopiec O(log n),
+    cała symulacja O(N log N). Zjawisko głodzenia w HPF i jak pomaga AGING.
+Biblioteki:
+  <chrono>  std::chrono::steady_clock — pomiar czasu działania programu
+
+
+-----------------------------------------------------------------------------
+NA KONIEC (na 4.0 i 5.0): jakość kodu
+-----------------------------------------------------------------------------
+  - const przy metodach, które nic nie zmieniają; przekazywanie przez const&.
+  - std::unique_ptr / std::shared_ptr zamiast new/delete.
+  - std::optional (już masz w Wykonawca) i std::variant (np. typy zdarzeń
+    zamiast enum: std::variant<Nadejscie, Zakonczenie> + std::visit).
+  - Wzorce: Strategia (krok 3), Fabryka (nazwa strategii z pliku -> obiekt),
+    Obserwator (statystyki jako osobna klasa, którą symulator powiadamia).
+
+Kolejność ma znaczenie: zawsze najpierw działający, sprawdzony na kartce
+mały program, potem jedna nowa rzecz. Powodzenia!
