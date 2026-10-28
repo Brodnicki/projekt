@@ -45,7 +45,7 @@ std::vector<Wynik> Symulator::uruchom() {
 
 void Symulator::obsluzNadejscie(int indeksZlecenia) {
     const Zlecenie& z = zlecenia_[static_cast<std::size_t>(indeksZlecenia)];
-    std::cout << "[t=" << teraz_ << "] nadeszło zlecenie #" << z.id << '\n';
+    std::cout << "[t=" << teraz_ << "] nadeszlo zlecenie #" << z.id << '\n';
     kolejka_.push(z);
 
     // Samoplanujące się nadejścia: w kalendarzu jest zawsze tylko jedno przyszłe nadejście.
@@ -60,7 +60,7 @@ void Symulator::obsluzZakonczenie(int indeksWykonawcy) {
     const Zlecenie z = w.zakoncz(teraz_);
     const int rekord = rekordWykonawcy_[static_cast<std::size_t>(indeksWykonawcy)];
     wyniki_[static_cast<std::size_t>(rekord)].koniec = teraz_;
-    std::cout << "[t=" << teraz_ << "] " << w.nazwa() << " kończy zlecenie #" << z.id << '\n';
+    std::cout << "[t=" << teraz_ << "] " << w.nazwa() << " konczy zlecenie #" << z.id << '\n';
 }
 
 void Symulator::przydzielZlecenia() {
@@ -84,7 +84,7 @@ void Symulator::przydzielZlecenia() {
 
         // Wykonawca nic nie odlicza — po prostu wpisujemy do kalendarza, kiedy skończy.
         zaplanuj(teraz_ + z.realizacja, TypZdarzenia::Zakonczenie, static_cast<int>(i));
-        std::cout << "[t=" << teraz_ << "] " << w.nazwa() << " zaczyna zlecenie #" << z.id << " (czekało "
+        std::cout << "[t=" << teraz_ << "] " << w.nazwa() << " zaczyna zlecenie #" << z.id << " (czekalo "
                   << wynik.oczekiwanie() << " s)\n";
     }
 }

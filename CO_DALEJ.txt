@@ -15,8 +15,8 @@ albo:        cmake -S . -B build && cmake --build build
 KROK 2. Kilku wykonawców
 -----------------------------------------------------------------------------
 Co zrobić:
-  - W main.cpp dodaj drugiego wykonawcę: Wykonawca("Jan").
-  - Sprawdź na kartce, kto dostaje które zlecenie.
+  - W main.cpp dodaj drugiego wykonawcę: Wykonawca("Jan"). Git
+  - Sprawdź na kartce, kto dostaje które zlecenie. Git
 Biblioteki: nic nowego (std::vector już jest).
 Uwaga: teraz zlecenie dostaje pierwszy wolny z listy. Później zastąpisz to
 regułą wyboru (patrz krok 4).
@@ -26,12 +26,12 @@ regułą wyboru (patrz krok 4).
 KROK 3. Priorytet, termin i druga strategia (WYMAGANE NA 3.0)
 -----------------------------------------------------------------------------
 Co zrobić:
-  1. W Zlecenie.h dodaj pola: int priorytet (1..5), int termin (deadline).
-  2. Zrób interfejs strategii — klasę abstrakcyjną, np. IStrategia:
-       virtual void dodaj(const Zlecenie&) = 0;
-       virtual bool pusta() const = 0;
-       virtual Zlecenie pobierz() = 0;
-       virtual ~IStrategia() = default;
+  1. W Zlecenie.h dodaj pola: int priorytet (1..5), int termin (deadline). Git
+  2. Zrób interfejs strategii — klasę abstrakcyjną, np. IStrategia: GIT
+       virtual void dodaj(const Zlecenie&) = 0; GIT
+       virtual bool pusta() const = 0; GIT
+       virtual Zlecenie pobierz() = 0; GIT
+       virtual ~IStrategia() = default; GIT
   3. Dwie implementacje:
        StrategiaFifo  — w środku std::queue<Zlecenie>
        StrategiaHpf   — w środku std::priority_queue<Zlecenie, std::vector<Zlecenie>, KomparatorPriorytetu>

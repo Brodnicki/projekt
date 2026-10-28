@@ -22,8 +22,10 @@ int main() {
         {2, 5, 3},
         {3, 6, 1},
     };
-    const std::vector<Wykonawca> wykonawcy{Wykonawca("Ewa")};
+    const std::vector<Wykonawca> wykonawcy{Wykonawca("Ewa"), Wykonawca("Jan")};
+    
     // TODO (krok 2): dodaj drugiego wykonawcę, np. Wykonawca("Jan"), i sprawdź wynik ręcznie.
+
 
     Symulator symulator(zlecenia, wykonawcy);
     const std::vector<Wynik> wyniki = symulator.uruchom();
@@ -36,11 +38,11 @@ int main() {
         suma += w.oczekiwanie();
     }
     if (!wyniki.empty()) {
-        std::cout << "\nŚrednie oczekiwanie: " << suma / static_cast<double>(wyniki.size()) << " s\n";
+        std::cout << "\nSrednie oczekiwanie: " << suma / static_cast<double>(wyniki.size()) << " s\n";
     }
     for (const Wykonawca& w : symulator.wykonawcy()) {
         const double wykorzystanie = 100.0 * w.czasPracy() / std::max(1, symulator.czasKonca());
-        std::cout << w.nazwa() << ": obsłużone zlecenia: " << w.obsluzone() << ", wykorzystanie " << std::fixed
+        std::cout << w.nazwa() << ": obsluzone zlecenia: " << w.obsluzone() << ", wykorzystanie " << std::fixed
                   << std::setprecision(1) << wykorzystanie << "%\n";
     }
     return 0;

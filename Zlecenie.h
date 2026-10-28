@@ -12,6 +12,8 @@ struct Zlecenie {
     int id = 0;
     int nadejscie = 0;   // chwila pojawienia się w systemie [s]
     int realizacja = 0;  // ile trwa obsługa [s]
+    int priorytet = 0;
+    int deadline = 0;
     // TODO (krok 3): priorytet, termin (deadline), wymagana specjalizacja
 };
 
